@@ -1,4 +1,4 @@
-# 🗂️ FileVibe
+# FileVibe
 
 **Free, 100% client-side JPG/PNG/WEBP → PDF converter.** No uploads, no servers, no limits.
 
