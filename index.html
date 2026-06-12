@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FileVibe — Free JPG to PDF Converter, No Limits, No Ads</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="description" content="Convert JPG, PNG, and WEBP images to PDF for free, with no upload limits and no ads. Bulk image to PDF conversion happens 100% locally in your browser — your files never leave your device." />
+<meta name="keywords" content="jpg to pdf, image to pdf converter, free pdf converter, bulk image to pdf, convert webp to pdf, png to pdf, local image to pdf tool, no ads pdf converter, privacy friendly pdf tool" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://example.com/jpg-to-pdf" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="FileVibe — Free JPG to PDF Converter, No Limits, No Ads" />
+<meta property="og:description" content="Bulk convert JPG, PNG, and WEBP images into a single PDF. 100% free, open, and processed locally in your browser." />
+
+<!-- Structured data: WebApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "FileVibe — JPG to PDF Converter",
+  "url": "https://www.filevibe.app",
+  "applicationCategory": "Utility",
+  "applicationSubCategory": "File Converter",
+  "operatingSystem": "Any (Web Browser)",
+  "browserRequirements": "Requires HTML5 Canvas API and File API support",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "FileVibe is a 100% free, serverless, client-side image-to-PDF converter. It converts JPG, PNG, and WEBP images into a single PDF document entirely within local browser memory using the HTML5 Canvas and File APIs — no uploads, no server processing, and zero hosting costs. Files never leave the user's device, making it a fully secure and private alternative to online converters.",
+  "featureList": [
+    "100% Secure — local browser memory only, no file uploads",
+    "Serverless architecture with zero hosting costs",
+    "Unlimited image-to-PDF conversions, no file count limits",
+    "Drag-and-drop reordering and 90-degree image rotation",
+    "Configurable page size, orientation, and margins",
+    "No ads, watermarks, sign-up, or account required"
+  ],
+  "softwareRequirements": "Modern web browser with HTML5 Canvas and File API support",
+  "creator": { "@type": "Person", "name": "Nilabh Shivam" }
+}
+</script>
+
+<!-- Structured data: FAQPage -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is FileVibe a safe image to PDF converter?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. FileVibe processes every image entirely in your browser's local memory using the HTML5 Canvas and File APIs. Nothing is ever uploaded, so your photos stay private and secure on your own device." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I convert images to PDF without a server?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Absolutely. FileVibe is fully serverless — the entire PDF compilation runs client-side in your browser. This also means zero hosting costs for us, which is why the tool stays free with no ads or limits." }
+    },
+    {
+      "@type": "Question",
+      "name": "Will large files hit my browser's memory limit?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Most modern browsers can comfortably handle dozens of high-resolution images in memory before any slowdown. If you're working with very large batches (20+ 4K images), processing may take a few extra seconds, but everything still completes locally without any data leaving your device." }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need an account or subscription to use FileVibe?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No sign-up, login, or payment is required. FileVibe is 100% free to use, with no watermarks or page limits — just open the page and start converting." }
+    }
+  ]
+}
+</script>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['"Inter"', 'system-ui', '-apple-system', 'Segoe UI', 'Helvetica', 'Arial', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        },
+        colors: {
+          accent: '#18181B',
+          volt: '#FFE600',
+          mint: '#E3F5EE',
+          sand: '#FBF6EE',
+        }
+      }
+    }
+  }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; }
+
+  @keyframes pulseDot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.45); }
+    50% { box-shadow: 0 0 0 4px rgba(16,185,129,0); }
+  }
+  .pulse-dot { animation: pulseDot 2s ease-in-out infinite; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 9999px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .dragover {
+    border-color: #a5b4fc !important;
+    background-color: #EEF0FF !important;
+    box-shadow: inset 0 0 0 1px #c7d2fe, 0 0 40px -8px rgba(99,102,241,0.35);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .animate-in { animation: fadeIn 0.2s ease-out; }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-in { animation: modalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+
+  .btn-scale { transition: transform 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease; }
+  .btn-scale:active { transform: scale(0.97); }
+  .btn-scale:hover { transform: scale(1.015); }
+
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] .faq-chevron { transform: rotate(180deg); }
+
+  /* Toast notifications */
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes toastOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(8px) scale(0.97); }
+  }
+  .toast-in { animation: toastIn 0.2s ease-out; }
+  .toast-out { animation: toastOut 0.18s ease-in forwards; }
+
+  /* Spinner for Generate PDF loading state */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { animation: spin 0.7s linear infinite; }
+
+  /* Drag-and-drop reorder feedback */
+  .dragging-card { opacity: 0.4; }
+  .drop-target { outline: 2px dashed #6366f1; outline-offset: 2px; }
+</style>
+</head>
+<body class="bg-zinc-50 text-zinc-800 min-h-screen antialiased">
+
+<div class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-zinc-200 bg-white">
+    <div class="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-white border border-zinc-200 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+          <img src="favicon-32x32.png" alt="FileVibe logo" class="w-5 h-5" />
+        </div>
+        <div>
+          <h1 class="text-sm font-bold tracking-tight text-zinc-900 leading-none">FileVibe</h1>
+          <p class="text-[11px] text-zinc-400 font-medium leading-none mt-1">
+            <span class="relative inline-block pb-[3px]">
+              JPG → PDF
+              <span class="absolute left-0 right-0 bottom-0 h-[2px] bg-[#FFE600]"></span>
+            </span>
+            <span class="text-zinc-400"> / Free image compiler</span>
+          </p>
+        </div>
+      </div>
+      <div class="text-[11px] font-semibold px-3 py-2 rounded-xl bg-white/70 backdrop-blur-sm text-emerald-600 border border-emerald-100 flex items-center gap-2">
+        <span>100% Free</span>
+        <span class="text-emerald-300">•</span>
+        <span class="text-emerald-500 font-medium">No Limits</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Core Responsive Grid -->
+  <div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start px-4 py-6 flex-1">
+
+    <!-- Left Control Sidebar -->
+    <aside class="lg:col-span-4 flex flex-col gap-6 order-2 lg:order-1">
+
+      <!-- Configuration -->
+      <div class="rounded-2xl border border-zinc-200 bg-white p-6">
+        <h2 class="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-4">Configuration</h2>
+
+        <div class="space-y-4 mb-5">
+          <div class="space-y-1.5">
+            <label for="pageSize" class="text-xs font-semibold text-zinc-600">Page Size</label>
+            <select id="pageSize" aria-label="PDF page size: A4, US Letter, or fit to image dimensions" class="w-full text-sm font-medium bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-shadow">
+              <option value="a4">A4</option>
+              <option value="letter">US Letter</option>
+              <option value="fit">Fit to image</option>
+            </select>
+          </div>
+
+          <div class="space-y-1.5">
+            <label for="orientation" class="text-xs font-semibold text-zinc-600">Orientation</label>
+            <select id="orientation" aria-label="PDF page orientation: portrait or landscape" class="w-full text-sm font-medium bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-shadow">
+              <option value="portrait">Portrait</option>
+              <option value="landscape">Landscape</option>
+            </select>
+          </div>
+
+          <div class="space-y-1.5">
+            <label for="margin" class="text-xs font-semibold text-zinc-600 flex items-center justify-between">
+              <span>Margin</span>
+              <span id="marginValue" class="text-zinc-400 font-medium">0 mm</span>
+            </label>
+            <input id="margin" type="range" min="0" max="40" value="0" step="1"
+              aria-label="Page margin in millimeters for converted PDF pages"
+              class="w-full h-1.5 rounded-full appearance-none bg-zinc-200 accent-accent cursor-pointer mt-3" />
+          </div>
+
+          <div class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 flex items-center justify-between">
+            <span class="text-xs font-semibold text-zinc-600">Files queued</span>
+            <span class="text-xs font-bold text-zinc-900"><span id="queueCount">0</span> queued <span id="queueSize" class="text-zinc-400 font-medium"></span></span>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <button id="generateBtn" aria-label="Generate and download PDF from uploaded images, unlimited pages, free" class="btn-scale w-full bg-accent hover:bg-volt text-white hover:text-accent text-sm font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-sm shadow-accent/10">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Generate PDF
+          </button>
+          <button id="clearAllBtn" type="button" aria-label="Remove all queued images" class="btn-scale w-full bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-500 hover:text-zinc-700 text-xs font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9.5 4h5a1 1 0 011 1v2h-7V5a1 1 0 011-1z"/></svg>
+            Clear All
+          </button>
+        </div>
+      </div>
+
+      <!-- Support Open Software -->
+      <div class="rounded-2xl border border-zinc-200 bg-white p-4 relative overflow-hidden">
+        <div class="flex items-center gap-2 mb-1.5">
+          <div class="w-6 h-6 rounded-lg bg-volt/20 border border-zinc-200 flex items-center justify-center shrink-0">
+            <span class="text-xs">💛</span>
+          </div>
+          <h2 class="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Support Open Software</h2>
+        </div>
+        <p class="text-xs text-zinc-500 leading-snug mb-2.5">
+          FileVibe is free and ad-free. If it saved you time, a small UPI tip helps keep it that way.
+        </p>
+
+        <div class="space-y-2.5">
+          <button id="upiBtn" type="button"
+            aria-label="Pay with Google Pay or any UPI app to support FileVibe"
+            class="btn-scale flex items-center justify-center gap-2.5 w-full bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 text-sm font-semibold py-2.5 rounded-xl shadow-sm">
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M12 11v2.4h3.97c-.16 1.03-1.2 3.02-3.97 3.02-2.39 0-4.34-1.98-4.34-4.42s1.95-4.42 4.34-4.42c1.36 0 2.27.58 2.79 1.08l1.9-1.83C15.46 5.69 13.89 5 12 5c-3.87 0-7 3.13-7 7s3.13 7 7 7c4.04 0 6.72-2.84 6.72-6.84 0-.46-.05-.81-.11-1.16H12z"/>
+              <path fill="#34A853" d="M12 19c1.89 0 3.46-.62 4.61-1.69l-2.25-1.74c-.62.42-1.42.67-2.36.67-1.81 0-3.35-1.22-3.9-2.86l-2.32 1.79C6.85 17.42 9.21 19 12 19z"/>
+              <path fill="#FBBC05" d="M8.1 13.38a4.2 4.2 0 010-2.76l-2.32-1.79a7 7 0 000 6.34l2.32-1.79z"/>
+              <path fill="#EA4335" d="M12 8.16c1.03 0 1.95.36 2.68 1.05l2.01-2.01C15.45 5.97 13.89 5.3 12 5.3c-2.79 0-5.15 1.58-6.22 3.87l2.32 1.79c.55-1.64 2.09-2.8 3.9-2.8z"/>
+            </svg>
+            Send a tip via UPI
+          </button>
+
+          <div class="rounded-xl border border-emerald-100 bg-white/70 backdrop-blur-sm px-3 py-2.5 flex items-start gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-white border border-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 4.556-3.04 8.27-7.5 9.5-4.46-1.23-7.5-4.944-7.5-9.5V5.25l7.5-3.5 7.5 3.5V12z"/></svg>
+            </div>
+            <p class="text-[11px] leading-snug text-emerald-700">
+              100% Secure. Images are processed locally in your browser memory and never sent to any server.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Right Operational Canvas -->
+    <main class="lg:col-span-8 bg-white border border-zinc-200/80 p-6 rounded-2xl min-h-[550px] flex flex-col gap-6 order-1 lg:order-2">
+
+      <!-- Workspace banner -->
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <h2 class="text-sm font-bold tracking-tight text-zinc-900">Conversion Workspace</h2>
+        <div class="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 bg-mint border border-emerald-100 rounded-full px-3 py-1.5">
+          <span class="relative flex h-2 w-2">
+            <span class="pulse-dot absolute inline-flex h-full w-full rounded-full bg-emerald-400"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          Local Browser Memory Only
+        </div>
+      </div>
+
+      <!-- Dropzone -->
+      <label id="dropzone" for="fileInput"
+        aria-label="Drop zone for bulk image to PDF conversion. Supports JPG, PNG, and WEBP files, processed locally with no upload limits"
+        class="group cursor-pointer relative flex flex-col items-center justify-center text-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/60 hover:border-accent/30 transition-all duration-300 px-6 py-20 shrink-0">
+        <div class="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mb-1 group-hover:scale-105 group-hover:bg-volt/30 transition-all">
+          <svg class="w-6 h-6 text-accent" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 12v9m0-9l-3 3m3-3l3 3"/></svg>
+        </div>
+        <div>
+          <p class="text-base font-semibold text-zinc-700">Drop images here, or <span class="text-accent underline decoration-volt decoration-2">browse</span></p>
+          <p class="text-xs text-zinc-400 mt-1.5">JPG, PNG, WEBP supported · Convert unlimited images for free</p>
+        </div>
+        <input id="fileInput" type="file" accept="image/*" multiple class="hidden"
+          aria-label="Upload JPG, PNG, or WEBP images to convert to PDF in bulk, no limits" />
+      </label>
+
+      <!-- Gallery Grid -->
+      <div class="flex-1 flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Image Queue</h2>
+          <div class="flex items-center gap-3">
+            <p class="text-[11px] text-zinc-400">Hover a card to delete</p>
+            <span class="text-[11px] font-bold text-zinc-900 bg-white border border-zinc-200 rounded-full px-2.5 py-1">
+              <span id="queueCount2">0</span> queued <span id="queueSize2" class="text-zinc-400 font-medium"></span>
+            </span>
+          </div>
+        </div>
+
+        <div class="relative flex-1 rounded-2xl border border-zinc-200 bg-white p-5 min-h-[280px]">
+
+          <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center px-6">
+            <div class="grid grid-cols-3 gap-3 w-full max-w-xs opacity-70">
+              <div class="aspect-[3/4] rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50"></div>
+              <div class="aspect-[3/4] rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50"></div>
+              <div class="aspect-[3/4] rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50"></div>
+            </div>
+            <p class="text-sm text-zinc-400 max-w-xs">Your queued images will appear here for sorting and editing</p>
+          </div>
+
+          <div id="previewGrid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- About + FAQ -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 pb-16 px-4 max-w-7xl mx-auto w-full">
+
+    <!-- About FileVibe -->
+    <div class="md:col-span-1">
+      <h2 class="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">About FileVibe</h2>
+      <p class="text-sm leading-relaxed text-neutral-600">
+        FileVibe turns JPG, PNG, and WEBP photos into a single PDF document directly in your browser.
+        No sign-up, no file count restrictions, no watermarks, and no ads — everything runs locally,
+        so your images never leave your device.
+      </p>
+    </div>
+
+    <!-- FAQ -->
+    <div class="md:col-span-2">
+      <h2 class="text-lg font-bold text-neutral-900 mb-1">Frequently asked questions</h2>
+      <p class="text-sm text-neutral-500 mb-6">Everything you need to know about how FileVibe handles your files.</p>
+
+      <div class="divide-y divide-neutral-200 border border-neutral-200 rounded-2xl overflow-hidden bg-white">
+
+      <details class="group p-5">
+        <summary class="flex items-center justify-between cursor-pointer text-sm font-semibold text-neutral-900">
+          Is FileVibe a safe image to PDF converter?
+          <svg class="faq-chevron w-4 h-4 text-neutral-400 transition-transform shrink-0 ml-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <p class="text-sm text-neutral-500 leading-relaxed mt-3">
+          Yes. FileVibe processes every image entirely in your browser's local memory using the HTML5 Canvas and File APIs. Nothing is ever uploaded, so your photos stay private and secure on your own device.
+        </p>
+      </details>
+
+      <details class="group p-5">
+        <summary class="flex items-center justify-between cursor-pointer text-sm font-semibold text-neutral-900">
+          Can I convert images to PDF without a server?
+          <svg class="faq-chevron w-4 h-4 text-neutral-400 transition-transform shrink-0 ml-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <p class="text-sm text-neutral-500 leading-relaxed mt-3">
+          Absolutely. FileVibe is fully <span class="text-neutral-900 font-medium">serverless</span> — the entire PDF compilation runs client-side in your browser. This also means <span class="bg-[#FFE600]/30 px-1 rounded">zero hosting costs</span> for us, which is why the tool stays free with no ads or limits.
+        </p>
+      </details>
+
+      <details class="group p-5">
+        <summary class="flex items-center justify-between cursor-pointer text-sm font-semibold text-neutral-900">
+          Will large files hit my browser's memory limit?
+          <svg class="faq-chevron w-4 h-4 text-neutral-400 transition-transform shrink-0 ml-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <p class="text-sm text-neutral-500 leading-relaxed mt-3">
+          Most modern browsers can comfortably handle dozens of high-resolution images in memory before any slowdown. If you're working with very large batches (20+ 4K images), processing may take a few extra seconds, but everything still completes locally without any data leaving your device.
+        </p>
+      </details>
+
+      <details class="group p-5">
+        <summary class="flex items-center justify-between cursor-pointer text-sm font-semibold text-neutral-900">
+          Do I need an account or subscription to use FileVibe?
+          <svg class="faq-chevron w-4 h-4 text-neutral-400 transition-transform shrink-0 ml-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <p class="text-sm text-neutral-500 leading-relaxed mt-3">
+          No sign-up, login, or payment is required. FileVibe is 100% free to use, with no watermarks or page limits — just open the page and start converting.
+        </p>
+      </details>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Ownership stamp -->
+  <footer class="bg-white border-t border-zinc-200 py-5 text-center">
+    <p class="text-xs font-mono tracking-wide text-neutral-400 inline-flex items-center gap-1.5">
+      Built with 💜 in India • by
+      <a href="https://github.com/shvm-k" target="_blank" rel="noopener noreferrer"
+        class="relative inline-flex items-center gap-1 text-neutral-400 hover:text-neutral-600 transition-colors duration-200 after:absolute after:left-0 after:right-0 after:bottom-[-2px] after:h-[2px] after:bg-[#FFE600] after:scale-x-0 hover:after:scale-x-100 after:origin-left after:transition-transform after:duration-200">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.5 11.5 0 013-.405c1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.225.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        SHVM
+      </a>
+    </p>
+  </footer>
+
+</div>
+
+<!-- Toast notification stack -->
+<div id="toastStack" class="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 items-end" aria-live="polite"></div>
+
+<!-- UPI Support Modal -->
+<div id="upiOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4">
+  <div class="modal-in bg-white rounded-2xl border border-zinc-200 shadow-xl max-w-sm w-full p-6 relative">
+    <button id="upiClose" aria-label="Close support dialog" class="absolute top-4 right-4 text-zinc-300 hover:text-zinc-500 transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+
+    <div class="w-10 h-10 rounded-xl bg-volt/20 border border-zinc-200 flex items-center justify-center mb-3">
+      <span class="text-base">💛</span>
+    </div>
+    <h3 class="text-lg font-bold text-zinc-900 mb-1.5">Support Open Software</h3>
+    <p class="text-sm text-zinc-500 leading-relaxed mb-5">
+      Scan the QR code or copy the UPI ID below to send a tip via any UPI app.
+    </p>
+
+    <div class="w-36 h-36 mx-auto rounded-xl border border-zinc-200 bg-zinc-50 flex items-center justify-center mb-5 overflow-hidden p-2">
+      <img id="upiQrImg" alt="UPI QR code for nilabhshivam333@okicici" class="w-full h-full object-contain rounded-lg" />
+    </div>
+
+    <label for="upiIdField" class="text-xs font-semibold text-zinc-600 mb-1.5 block">UPI ID</label>
+    <div class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5">
+      <input id="upiIdField" type="text" readonly value="nilabhshivam333@okicici"
+        aria-label="UPI ID for supporting FileVibe, copyable"
+        class="flex-1 bg-transparent text-sm font-mono text-zinc-700 focus:outline-none" />
+      <button id="upiCopyBtn" type="button" class="btn-scale shrink-0 text-xs font-semibold bg-accent text-white px-3 py-1.5 rounded-lg">Copy</button>
+    </div>
+    <p id="upiCopyMsg" class="text-[11px] text-emerald-500 font-medium mt-2 h-4"></p>
+  </div>
+</div>
+
+<script>
+  let files = []; // { id, file, dataUrl, width, height }
+
+  const fileInput = document.getElementById('fileInput');
+  const dropzone = document.getElementById('dropzone');
+  const emptyState = document.getElementById('emptyState');
+  const queueCount = document.getElementById('queueCount');
+  const queueCount2 = document.getElementById('queueCount2');
+  const queueSize = document.getElementById('queueSize');
+  const queueSize2 = document.getElementById('queueSize2');
+  const clearAllBtn = document.getElementById('clearAllBtn');
+  const previewGrid = document.getElementById('previewGrid');
+  const generateBtn = document.getElementById('generateBtn');
+  const marginInput = document.getElementById('margin');
+  const marginValue = document.getElementById('marginValue');
+
+  const toastStack = document.getElementById('toastStack');
+
+  /**
+   * Lightweight toast notification system (no external deps).
+   * @param {string} message - text to display
+   * @param {'success'|'error'|'info'} type - visual style
+   */
+  function showToast(message, type = 'success') {
+    const colors = {
+      success: 'bg-emerald-50 border-emerald-100 text-emerald-700',
+      error: 'bg-rose-50 border-rose-100 text-rose-600',
+      info: 'bg-zinc-50 border-zinc-200 text-accent',
+    };
+    const toast = document.createElement('div');
+    toast.className = `toast-in ${colors[type] || colors.info} border text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm`;
+    toast.textContent = message;
+    toastStack.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.remove('toast-in');
+      toast.classList.add('toast-out');
+      toast.addEventListener('animationend', () => toast.remove(), { once: true });
+    }, 2200);
+  }
+
+  marginInput.addEventListener('input', () => {
+    marginValue.textContent = `${marginInput.value} mm`;
+  });
+
+  fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+  ['dragenter', 'dragover'].forEach(evt =>
+    dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); })
+  );
+  ['dragleave', 'drop'].forEach(evt =>
+    dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); })
+  );
+  dropzone.addEventListener('drop', (e) => {
+    if (e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+  });
+
+  function handleFiles(fileListInput) {
+    const incoming = Array.from(fileListInput).filter(f => f.type.startsWith('image/'));
+    if (incoming.length === 0) {
+      if (fileListInput.length > 0) showToast('Only image files are supported', 'error');
+      return;
+    }
+
+    let loaded = 0;
+    let failed = 0;
+
+    incoming.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          files.push({
+            id: crypto.randomUUID(),
+            file,
+            dataUrl: ev.target.result,
+            type: file.type,
+            width: img.width,
+            height: img.height,
+            rotation: 0, // 0 | 90 | 180 | 270 — applied at render & PDF compile time
+          });
+          loaded++;
+          render();
+          if (loaded + failed === incoming.length) {
+            showToast(
+              failed > 0
+                ? `Added ${loaded} image${loaded === 1 ? '' : 's'}, ${failed} failed`
+                : `${loaded} image${loaded === 1 ? '' : 's'} added successfully`,
+              failed > 0 ? 'error' : 'success'
+            );
+          }
+        };
+        img.onerror = () => {
+          failed++;
+          console.warn('Could not load image:', file.name);
+          if (loaded + failed === incoming.length) {
+            showToast(`${loaded} added, ${failed} failed to load`, 'error');
+          }
+        };
+        img.src = ev.target.result;
+      };
+      reader.onerror = () => {
+        failed++;
+        console.warn('Could not read file:', file.name);
+      };
+      reader.readAsDataURL(file);
+    });
+    fileInput.value = '';
+  }
+
+  clearAllBtn.addEventListener('click', () => {
+    if (files.length === 0) return;
+    files = [];
+    render();
+    showToast('Queue cleared', 'info');
+  });
+
+  function removeFile(id) {
+    files = files.filter(f => f.id !== id);
+    render();
+    showToast('Image removed', 'info');
+  }
+
+  function moveFile(id, dir) {
+    const idx = files.findIndex(f => f.id === id);
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= files.length) return;
+    [files[idx], files[newIdx]] = [files[newIdx], files[idx]];
+    render();
+  }
+
+  /** Reorder by moving the file with `id` to before the file at `targetId` (or to the end if null). */
+  function reorderFile(id, targetId) {
+    if (id === targetId) return;
+    const fromIdx = files.findIndex(f => f.id === id);
+    if (fromIdx === -1) return;
+    const [moved] = files.splice(fromIdx, 1);
+    if (targetId == null) {
+      files.push(moved);
+    } else {
+      const toIdx = files.findIndex(f => f.id === targetId);
+      files.splice(toIdx === -1 ? files.length : toIdx, 0, moved);
+    }
+    render();
+  }
+
+  /** Rotate a queued image by 90deg increments (visual + PDF compile). */
+  function rotateFile(id) {
+    const f = files.find(f => f.id === id);
+    if (!f) return;
+    f.rotation = (f.rotation + 90) % 360;
+    render();
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/(1024*1024)).toFixed(1) + ' MB';
+  }
+
+  function render() {
+    queueCount.textContent = files.length;
+    queueCount2.textContent = files.length;
+    const totalBytes = files.reduce((sum, f) => sum + f.file.size, 0);
+    const totalSizeLabel = files.length ? `(${formatSize(totalBytes)})` : '';
+    queueSize.textContent = totalSizeLabel;
+    queueSize2.textContent = totalSizeLabel;
+    clearAllBtn.disabled = files.length === 0;
+    emptyState.classList.toggle('hidden', files.length > 0);
+    previewGrid.innerHTML = '';
+
+    files.forEach((f, i) => {
+      const card = document.createElement('div');
+      card.className = `animate-in group relative rounded-xl overflow-hidden border border-zinc-200 bg-white aspect-[3/4] transition-shadow hover:shadow-md hover:shadow-zinc-200/60 cursor-grab`;
+      card.draggable = true;
+      card.dataset.id = f.id;
+      card.innerHTML = `
+        <img src="${f.dataUrl}" alt="Preview of uploaded image ${i + 1}, page ${i + 1} in converted PDF" class="w-full h-full object-cover transition-transform duration-200" style="transform: rotate(${f.rotation}deg);" />
+
+        <span class="absolute top-2 left-2 text-[10px] font-bold bg-white/90 backdrop-blur-sm text-zinc-700 rounded-full px-2.5 py-1 border border-zinc-200 shadow-sm">Page ${i + 1}</span>
+
+        <button data-action="remove" data-id="${f.id}" aria-label="Remove image ${i + 1} from PDF queue"
+          class="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-500 hover:text-rose-500 hover:border-rose-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+
+        <button data-action="rotate" data-id="${f.id}" aria-label="Rotate image ${i + 1} by 90 degrees"
+          class="absolute top-2 right-11 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-500 hover:text-accent hover:border-accent/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+
+        <div class="absolute bottom-0 inset-x-0 px-2.5 py-2 bg-gradient-to-t from-black/55 to-transparent translate-y-full group-hover:translate-y-0 transition-transform">
+          <p class="text-[11px] font-medium text-white truncate">${f.file.name}</p>
+          <p class="text-[10px] text-white/70">${formatSize(f.file.size)} · ${f.width}×${f.height}</p>
+        </div>
+
+        <div class="absolute inset-x-0 bottom-2 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button data-action="up" data-id="${f.id}" aria-label="Move image ${i + 1} earlier in PDF order" class="w-6 h-6 rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-500 hover:text-accent flex items-center justify-center shadow-sm">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 19V5M5 11l6-6 6 6"/></svg>
+          </button>
+          <button data-action="down" data-id="${f.id}" aria-label="Move image ${i + 1} later in PDF order" class="w-6 h-6 rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-500 hover:text-accent flex items-center justify-center shadow-sm">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5v14M5 13l6 6 6-6"/></svg>
+          </button>
+        </div>
+      `;
+      previewGrid.appendChild(card);
+    });
+
+    previewGrid.querySelectorAll('button[data-action]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        if (action === 'remove') removeFile(id);
+        if (action === 'up') moveFile(id, -1);
+        if (action === 'down') moveFile(id, 1);
+        if (action === 'rotate') rotateFile(id);
+      });
+    });
+
+    // --- Native HTML5 drag-and-drop reordering ---
+    let draggedId = null;
+    previewGrid.querySelectorAll('[draggable="true"]').forEach(card => {
+      card.addEventListener('dragstart', (e) => {
+        draggedId = card.dataset.id;
+        card.classList.add('dragging-card');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging-card');
+        previewGrid.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+        draggedId = null;
+      });
+      card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (card.dataset.id === draggedId) return;
+        previewGrid.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+        card.classList.add('drop-target');
+      });
+      card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        card.classList.remove('drop-target');
+        if (!draggedId || card.dataset.id === draggedId) return;
+        reorderFile(draggedId, card.dataset.id);
+      });
+    });
+    // Dropping past the last card moves the dragged image to the end of the queue.
+    previewGrid.addEventListener('dragover', (e) => e.preventDefault());
+    previewGrid.addEventListener('drop', (e) => {
+      if (e.target === previewGrid && draggedId) reorderFile(draggedId, null);
+    });
+
+    generateBtn.disabled = files.length === 0;
+  }
+
+  function waitForJsPDF(timeoutMs = 8000) {
+    return new Promise((resolve, reject) => {
+      const start = Date.now();
+      (function check() {
+        if (window.jspdf && window.jspdf.jsPDF) return resolve(window.jspdf.jsPDF);
+        if (Date.now() - start > timeoutMs) return reject(new Error('PDF engine failed to load. Please check your connection and try again.'));
+        requestAnimationFrame(check);
+      })();
+    });
+  }
+
+  const SPINNER_SVG = `<svg class="spinner w-4 h-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+    <path class="opacity-90" fill="currentColor" d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z"></path>
+  </svg>`;
+
+  /**
+   * Returns a canvas-rotated dataURL + adjusted width/height for a queued image,
+   * applying the user-selected 90deg increment rotation before PDF compilation.
+   */
+  function getRotatedImage(f) {
+    if (!f.rotation) return Promise.resolve({ dataUrl: f.dataUrl, width: f.width, height: f.height });
+
+    return new Promise((resolve, reject) => {
+      const swap = f.rotation === 90 || f.rotation === 270;
+      const canvas = document.createElement('canvas');
+      canvas.width = swap ? f.height : f.width;
+      canvas.height = swap ? f.width : f.height;
+
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = () => {
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((f.rotation * Math.PI) / 180);
+        ctx.drawImage(img, -f.width / 2, -f.height / 2, f.width, f.height);
+        resolve({
+          dataUrl: canvas.toDataURL(f.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.95),
+          width: canvas.width,
+          height: canvas.height,
+        });
+      };
+      img.onerror = () => reject(new Error(`Could not rotate image: ${f.file.name}`));
+      img.src = f.dataUrl;
+    });
+  }
+
+  generateBtn.addEventListener('click', async () => {
+    if (files.length === 0 || generateBtn.disabled) return;
+
+    const originalLabel = generateBtn.innerHTML;
+    generateBtn.disabled = true;
+
+    // Cycle through contextual status messages while the PDF is assembled,
+    // giving users feedback during heavy multi-image compilation.
+    const statusMessages = [
+      'Reading local streams…',
+      'Assembling PDF binaries…',
+      'Finalizing download…',
+    ];
+    let statusIdx = 0;
+    const setStatus = () => {
+      generateBtn.innerHTML = `${SPINNER_SVG}<span>${statusMessages[statusIdx % statusMessages.length]}</span>`;
+    };
+    setStatus();
+    const statusInterval = setInterval(() => { statusIdx++; setStatus(); }, 700);
+
+    try {
+      const jsPDF = await waitForJsPDF();
+      const pageSizeChoice = document.getElementById('pageSize').value;
+      const orientationChoice = document.getElementById('orientation').value;
+      const marginMm = parseFloat(marginInput.value) || 0;
+      const marginPx = marginMm * (96 / 25.4); // mm -> px at 96dpi (jsPDF unit 'px')
+
+      let pdf;
+      for (let idx = 0; idx < files.length; idx++) {
+        const file = files[idx];
+        const f = await getRotatedImage(file); // apply any user-set rotation before layout math
+        const isLandscape = orientationChoice === 'landscape';
+        let format = pageSizeChoice === 'fit' ? [f.width, f.height] : pageSizeChoice;
+        let orient = pageSizeChoice === 'fit' ? (f.width > f.height ? 'l' : 'p') : (isLandscape ? 'l' : 'p');
+
+        if (idx === 0) {
+          pdf = new jsPDF({ orientation: orient, unit: 'px', format: format, compress: true });
+        } else {
+          pdf.addPage(format, orient);
+        }
+
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const availW = Math.max(pageW - marginPx * 2, 1);
+        const availH = Math.max(pageH - marginPx * 2, 1);
+        const imgRatio = f.width / f.height;
+        const availRatio = availW / availH;
+
+        let drawW, drawH;
+        if (imgRatio > availRatio) {
+          drawW = availW; drawH = availW / imgRatio;
+        } else {
+          drawH = availH; drawW = availH * imgRatio;
+        }
+        const x = (pageW - drawW) / 2;
+        const y = (pageH - drawH) / 2;
+
+        // jsPDF needs an explicit format hint; map common mime types, default to JPEG.
+        // Rotated images are always re-encoded as PNG/JPEG via canvas (see getRotatedImage).
+        const fmt = file.rotation
+          ? (file.type === 'image/png' ? 'PNG' : 'JPEG')
+          : (file.type === 'image/png' ? 'PNG' : (file.type === 'image/webp' ? 'WEBP' : 'JPEG'));
+        pdf.addImage(f.dataUrl, fmt, x, y, drawW, drawH);
+      }
+
+      pdf.save('converted.pdf');
+      showToast('PDF successfully compiled', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Something went wrong while generating the PDF. Please try again.', 'error');
+    } finally {
+      clearInterval(statusInterval);
+      generateBtn.disabled = files.length === 0;
+      generateBtn.innerHTML = originalLabel;
+    }
+  });
+
+  /**
+   * --- WEB WORKER BLUEPRINT (optional perf upgrade) ---------------------------------
+   * For very large batches (e.g. 20x 4K images), PDF assembly above runs on the main
+   * thread and can momentarily block UI updates. To offload this:
+   *
+   * 1. Create `pdf-worker.js`:
+   *    importScripts('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+   *    self.onmessage = ({ data }) => {
+   *      const { images, pageSizeChoice, orientationChoice, marginPx } = data;
+   *      const { jsPDF } = self.jspdf;
+   *      let pdf;
+   *      images.forEach((f, idx) => { ...same layout math as above... });
+   *      const blob = pdf.output('blob');
+   *      self.postMessage({ blob }, []); // transfer the blob back
+   *    };
+   *
+   * 2. From the main thread:
+   *    const worker = new Worker('pdf-worker.js');
+   *    worker.postMessage({ images: files.map(f => ({...f, dataUrl: getRotatedImage(f).dataUrl})), ... });
+   *    worker.onmessage = ({ data }) => {
+   *      const url = URL.createObjectURL(data.blob);
+   *      const a = document.createElement('a'); a.href = url; a.download = 'converted.pdf'; a.click();
+   *      URL.revokeObjectURL(url);
+   *    };
+   *
+   * Note: canvas-based rotation (getRotatedImage) must stay on the main thread (or use
+   * OffscreenCanvas in the worker, supported in modern browsers) since workers lack DOM Image.
+   * ------------------------------------------------------------------------------- */
+
+  // UPI support modal
+  const upiBtn = document.getElementById('upiBtn');
+  const upiOverlay = document.getElementById('upiOverlay');
+  const upiClose = document.getElementById('upiClose');
+  const upiCopyBtn = document.getElementById('upiCopyBtn');
+  const upiIdField = document.getElementById('upiIdField');
+  const upiCopyMsg = document.getElementById('upiCopyMsg');
+
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  upiBtn.addEventListener('click', (e) => {
+    if (isMobile) {
+      window.location.href = 'upi://pay?pa=nilabhshivam333@okicici&pn=PDF-Vibe&cu=INR';
+      return;
+    }
+    e.preventDefault();
+    const upiUrl = 'upi://pay?pa=nilabhshivam333@okicici&pn=PDF-Vibe&cu=INR';
+    document.getElementById('upiQrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=' + encodeURIComponent(upiUrl);
+    upiOverlay.classList.remove('hidden');
+    upiOverlay.classList.add('flex');
+  });
+
+  function closeUpiModal() {
+    upiOverlay.classList.add('hidden');
+    upiOverlay.classList.remove('flex');
+    upiCopyMsg.textContent = '';
+  }
+  upiClose.addEventListener('click', closeUpiModal);
+  upiOverlay.addEventListener('click', (e) => { if (e.target === upiOverlay) closeUpiModal(); });
+
+  upiCopyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(upiIdField.value);
+      upiCopyMsg.textContent = 'Copied to clipboard!';
+    } catch {
+      upiIdField.select();
+      document.execCommand('copy');
+      upiCopyMsg.textContent = 'Copied to clipboard!';
+    }
+  });
+
+  render();
+</script>
+
+</body>
+</html>

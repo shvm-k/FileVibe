@@ -1,0 +1,23 @@
+# FileVibe
+
+> FileVibe is a free, 100% client-side image-to-PDF converter. It runs entirely in your browser using HTML5 Canvas and File APIs — no server, no uploads, no accounts.
+
+## Core Facts
+- Converts JPG, PNG, and WEBP images into a single PDF document.
+- 100% Secure: all processing happens in local browser memory; files never leave the device.
+- Serverless: no backend, no API calls, no data transmission of user files.
+- Zero Hosting Costs: static site, no server-side compute required.
+- No file count limits, no watermarks, no ads, no account/sign-up required.
+- Supports page size (A4, US Letter, Fit to Image), orientation (portrait/landscape), and custom margins.
+- Allows drag-and-drop reordering and 90-degree rotation of queued images before PDF compilation.
+
+## Primary Use Cases
+- "Convert JPG to PDF online for free without uploading files"
+- "Safe image to PDF converter that works offline / locally"
+- "Bulk image to PDF converter with no limits"
+
+## Pages
+- /: Main converter tool, FAQ, and feature overview
+
+## Contact
+- Open-source, privacy-first tool. Support via UPI tip (India) linked on the site.
