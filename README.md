@@ -1,6 +1,6 @@
 # FileVibe
 
-**Free, 100% client-side JPG/PNG/WEBP → PDF converter.** No uploads, no servers, no limits.
+**Free, 100% client-side JPG/PNG/WEBP → PDF converter and PDF merger.** No uploads, no servers, no limits.
 
 🔗 **Live App:** [FV](https://file-vibe.vercel.app/)
 
@@ -10,8 +10,9 @@
 
 - **100% Secure & Serverless** — all image processing and PDF compilation happens locally in your browser using the HTML5 Canvas and File APIs. Your files never leave your device.
 - **Bulk image → PDF** — convert unlimited JPG, PNG, and WEBP images into a single PDF document.
-- **Drag-and-drop reordering** — visually reorder queued images to control the final page order.
-- **Rotate images** — rotate any queued image in 90° increments before compiling.
+- **Merge PDFs** — drop multiple PDFs (mixed with images if you like) into the queue and combine them into one PDF; merged pages keep their original size.
+- **Drag-and-drop reordering** — visually reorder queued files to control the final page order.
+- **Rotate pages** — rotate any queued image or PDF in 90° increments before compiling.
 - **Configurable output** — choose page size (A4 / US Letter / Fit to Image), orientation, and margins.
 - **No ads, no watermarks, no sign-up** — completely free and open-source, with zero hosting costs.
 - **Toast notifications & polished UX** — clear feedback for adding, removing, and compiling files, plus loading states during PDF generation.
@@ -19,7 +20,7 @@
 ## 🛠️ Tech Stack
 
 - Vanilla HTML, JavaScript, and [Tailwind CSS](https://tailwindcss.com/) (via CDN)
-- [jsPDF](https://github.com/parallax/jsPDF) for client-side PDF generation
+- [pdf-lib](https://github.com/Hopding/pdf-lib) for client-side PDF generation and merging
 - Deployed on [Vercel](https://vercel.com/)
 
 ## 🚀 Running Locally
