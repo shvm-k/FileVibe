@@ -15,6 +15,7 @@
 - **Protect & unlock** — add a password with 256-bit AES encryption and optional print/copy/edit restrictions, or remove a password you know.
 - **Repair PDFs** — rebuild broken cross-reference tables, trailers, and truncated files.
 - **Sign PDFs** — draw, type, or upload a signature and drag it onto any page (visual electronic signature).
+- **Office ↔ PDF** — Word (.docx) and Excel (.xlsx, .csv) to PDF; PDF to Word, Excel, or PowerPoint. Basic, browser-only conversion: complex layouts are simplified.
 - **Drag-and-drop reordering** — visually reorder queued files to control the final page order.
 - **Rotate pages** — rotate any queued image or PDF in 90° increments before compiling.
 - **Configurable output** — choose page size (A4 / US Letter / Fit to Image), orientation, and margins.
@@ -26,7 +27,8 @@
 - Vanilla HTML, JavaScript, and [Tailwind CSS](https://tailwindcss.com/) (via CDN)
 - [pdf-lib](https://github.com/Hopding/pdf-lib) for client-side PDF generation, merging, repair, and signing
 - [qpdf](https://github.com/qpdf/qpdf) compiled to WebAssembly (vendored in `vendor/qpdf`) for encryption and compression
-- [PDF.js](https://mozilla.github.io/pdf.js/) for page previews when signing
+- [PDF.js](https://mozilla.github.io/pdf.js/) for page previews and text extraction
+- [mammoth](https://github.com/mwilliamson/mammoth.js), [pdfmake](https://pdfmake.github.io/), [ExcelJS](https://github.com/exceljs/exceljs), [docx](https://docx.js.org/), and [PptxGenJS](https://gitbrent.github.io/PptxGenJS/) for Office conversion (loaded on demand)
 - Deployed on [Vercel](https://vercel.com/)
 
 ## 🚀 Running Locally

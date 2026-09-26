@@ -310,6 +310,364 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Office ↔ PDF (basic, browser-only)
+  // ---------------------------------------------------------------------------
+
+  const JSDELIVR = 'https://cdn.jsdelivr.net/npm';
+  const OFFICE_LIBS = {
+    mammoth: `${JSDELIVR}/mammoth@1.12.3/mammoth.browser.min.js`,
+    pdfmake: `${JSDELIVR}/pdfmake@0.2.23/build/pdfmake.min.js`,
+    pdfmakeFonts: `${JSDELIVR}/pdfmake@0.2.23/build/vfs_fonts.js`,
+    htmlToPdfmake: `${JSDELIVR}/html-to-pdfmake@2.5.34/browser.js`,
+    exceljs: `${JSDELIVR}/exceljs@4.4.0/dist/exceljs.min.js`,
+    docx: `${JSDELIVR}/docx@9.7.2/dist/index.iife.js`,
+    pptxgenjs: `${JSDELIVR}/pptxgenjs@4.0.1/dist/pptxgen.bundle.js`,
+  };
+  const MIME = {
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  };
+
+  const extOf = (name) => (name.match(/\.([a-z0-9]+)$/i)?.[1] || '').toLowerCase();
+  const officeBase = (name) => name.replace(/\.[a-z0-9]+$/i, '');
+
+  async function loadPdfmake() {
+    await loadScript(OFFICE_LIBS.pdfmake);
+    await loadScript(OFFICE_LIBS.pdfmakeFonts); // registers Roboto into pdfMake.vfs
+    return window.pdfMake;
+  }
+
+  function pdfmakeToBytes(pdfMake, docDefinition) {
+    return new Promise((resolve, reject) => {
+      try {
+        pdfMake.createPdf(docDefinition).getBuffer(buf => resolve(new Uint8Array(buf)));
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  /** Word (.docx) → PDF: mammoth turns the document into clean HTML, pdfmake lays it out. */
+  async function docxToPdf(file) {
+    await Promise.all([loadScript(OFFICE_LIBS.mammoth), loadScript(OFFICE_LIBS.htmlToPdfmake)]);
+    const pdfMake = await loadPdfmake();
+    let html;
+    try {
+      ({ value: html } = await window.mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() }));
+    } catch {
+      throw new Error('Could not read this Word file. Make sure it is a .docx document.');
+    }
+    // pdfmake can only draw PNG and JPEG; drop other embedded image formats (EMF, GIF, …).
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    let skippedImages = 0;
+    tpl.content.querySelectorAll('img').forEach(img => {
+      if (!/^data:image\/(png|jpe?g);/i.test(img.getAttribute('src') || '')) { img.remove(); skippedImages++; }
+    });
+    const content = window.htmlToPdfmake(tpl.innerHTML, { window });
+
+    // Keep images inside the printable area (A4 minus margins).
+    (function fitImages(node) {
+      if (Array.isArray(node)) return node.forEach(fitImages);
+      if (!node || typeof node !== 'object') return;
+      if (node.image) { delete node.width; delete node.height; node.fit = [515, 740]; }
+      Object.values(node).forEach(v => { if (v && typeof v === 'object') fitImages(v); });
+    })(content);
+
+    const bytes = await pdfmakeToBytes(pdfMake, {
+      content,
+      pageSize: 'A4',
+      pageMargins: [40, 50, 40, 50],
+      defaultStyle: { fontSize: 11, lineHeight: 1.2 },
+    });
+    return {
+      bytes,
+      filename: `${officeBase(file.name)}.pdf`,
+      message: `Converted ${file.name} to PDF.${skippedImages ? ` ${skippedImages} image${skippedImages === 1 ? '' : 's'} in an unsupported format were left out.` : ''}`,
+    };
+  }
+
+  /** Minimal RFC 4180 CSV parser (quoted fields, escaped quotes, CRLF). */
+  function parseCsv(text) {
+    const rows = [];
+    let row = [], field = '', quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (quoted) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; } else quoted = false;
+        } else field += c;
+      } else if (c === '"') quoted = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(field); rows.push(row); row = []; field = '';
+      } else field += c;
+    }
+    if (field || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  const MAX_SHEET_ROWS = 3000;
+
+  /** Excel (.xlsx) or CSV → PDF: every sheet becomes a table, one sheet per page run. */
+  async function sheetToPdf(file) {
+    const pdfMake = await loadPdfmake();
+    let sheets;
+    if (extOf(file.name) === 'csv') {
+      sheets = [{ name: officeBase(file.name), rows: parseCsv(await file.text()) }];
+    } else {
+      await loadScript(OFFICE_LIBS.exceljs);
+      const wb = new window.ExcelJS.Workbook();
+      try {
+        await wb.xlsx.load(await file.arrayBuffer());
+      } catch {
+        throw new Error('Could not read this spreadsheet. Make sure it is an .xlsx file.');
+      }
+      sheets = wb.worksheets.map(ws => {
+        const rows = [];
+        for (let r = 1; r <= ws.rowCount; r++) {
+          const row = ws.getRow(r);
+          const cells = [];
+          for (let c = 1; c <= ws.columnCount; c++) {
+            let text = '';
+            try { text = row.getCell(c).text ?? ''; } catch { /* unreadable cell */ }
+            cells.push(String(text));
+          }
+          rows.push(cells);
+        }
+        return { name: ws.name, rows };
+      });
+    }
+
+    let truncated = false;
+    const content = [];
+    sheets.forEach(sheet => {
+      // Trim empty trailing rows and columns so blank formatting doesn't create empty pages.
+      let rows = sheet.rows.filter((r, i, all) => all.slice(i).some(x => x.some(v => v.trim())));
+      const cols = rows.reduce((m, r) => Math.max(m, r.reduce((last, v, i) => (v.trim() ? i + 1 : last), 0)), 0);
+      if (!rows.length || !cols) return;
+      if (rows.length > MAX_SHEET_ROWS) { rows = rows.slice(0, MAX_SHEET_ROWS); truncated = true; }
+      const body = rows.map(r => Array.from({ length: cols }, (_, i) => r[i] ?? ''));
+      const fontSize = cols <= 6 ? 9 : cols <= 12 ? 7 : 5.5;
+      content.push({
+        text: sheet.name, style: 'sheetTitle',
+        pageBreak: content.length ? 'before' : undefined,
+        pageOrientation: cols > 6 ? 'landscape' : 'portrait',
+      });
+      content.push({
+        table: { headerRows: 1, widths: Array(cols).fill(cols <= 4 ? 'auto' : '*'), body },
+        layout: 'lightHorizontalLines',
+        fontSize,
+      });
+    });
+    if (!content.length) throw new Error('This spreadsheet has no data to convert.');
+
+    const bytes = await pdfmakeToBytes(pdfMake, {
+      content,
+      pageSize: 'A4',
+      pageOrientation: content[0].pageOrientation,
+      pageMargins: [30, 36, 30, 36],
+      styles: { sheetTitle: { fontSize: 13, bold: true, margin: [0, 0, 0, 8] } },
+    });
+    return {
+      bytes,
+      filename: `${officeBase(file.name)}.pdf`,
+      message: `Converted ${sheets.length} sheet${sheets.length === 1 ? '' : 's'} to PDF.${truncated ? ` Long sheets were cut to the first ${MAX_SHEET_ROWS} rows.` : ''}`,
+    };
+  }
+
+  /** Reads positioned text from every page of a PDF with PDF.js. */
+  async function extractPdfText(file) {
+    const pdfjsLib = await loadPdfJs();
+    let pdf;
+    try {
+      pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+    } catch (err) {
+      if (err?.name === 'PasswordException') throw new Error('This PDF is password-protected. Remove the password with the Unlock tool first.');
+      throw new Error('Could not read this PDF.');
+    }
+    const pages = [];
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const page = await pdf.getPage(n);
+      const { items } = await page.getTextContent();
+      pages.push(items
+        .filter(it => it.str && it.str.trim())
+        .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width, h: Math.abs(it.transform[3]) || it.height || 10 })));
+    }
+    pdf.destroy();
+    if (!pages.some(p => p.length)) {
+      throw new Error('This PDF has no selectable text (it may be a scan), so it cannot be converted to an editable file.');
+    }
+    return pages;
+  }
+
+  /** Groups text items into visual lines, top to bottom, left to right. */
+  function groupLines(items) {
+    const sorted = [...items].sort((a, b) => b.y - a.y || a.x - b.x);
+    const lines = [];
+    sorted.forEach(it => {
+      const line = lines[lines.length - 1];
+      if (line && Math.abs(line.y - it.y) <= Math.max(2, Math.min(line.h, it.h) * 0.5)) {
+        line.items.push(it);
+        line.h = Math.max(line.h, it.h);
+      } else {
+        lines.push({ y: it.y, h: it.h, items: [it] });
+      }
+    });
+    lines.forEach(l => l.items.sort((a, b) => a.x - b.x));
+    return lines;
+  }
+
+  function lineText(line) {
+    let out = '';
+    let prevEnd = null;
+    line.items.forEach(it => {
+      if (prevEnd !== null && it.x - prevEnd > it.h * 0.2 && !out.endsWith(' ') && !it.str.startsWith(' ')) out += ' ';
+      out += it.str;
+      prevEnd = it.x + it.w;
+    });
+    return out.replace(/\s+/g, ' ').trim();
+  }
+
+  /** PDF → Word: text is rebuilt into paragraphs; larger text becomes bold headings. */
+  async function pdfToDocx(file) {
+    const pages = await extractPdfText(file);
+    await loadScript(OFFICE_LIBS.docx);
+    const { Document, Packer, Paragraph, TextRun, PageBreak } = window.docx;
+
+    const allHeights = pages.flat().map(i => i.h).sort((a, b) => a - b);
+    const bodySize = allHeights[Math.floor(allHeights.length / 2)] || 11;
+
+    const children = [];
+    pages.forEach((items, pi) => {
+      const lines = groupLines(items);
+      let para = null;
+      const flush = () => {
+        if (!para) return;
+        const heading = para.h > bodySize * 1.25;
+        children.push(new Paragraph({
+          spacing: { after: 160 },
+          children: [new TextRun({ text: para.text, bold: heading, size: Math.round(Math.min(Math.max(para.h, 8), 36) * 2) })],
+        }));
+        para = null;
+      };
+      lines.forEach((line, li) => {
+        const text = lineText(line);
+        if (!text) return;
+        const prev = lines[li - 1];
+        const gap = prev ? prev.y - line.y : 0;
+        const newPara = !para || gap > line.h * 1.6 || Math.abs(line.h - para.h) > 1.5;
+        if (newPara) { flush(); para = { text, h: line.h }; }
+        else para.text += (para.text.endsWith('-') ? '' : ' ') + text;
+      });
+      flush();
+      if (pi < pages.length - 1) children.push(new Paragraph({ children: [new PageBreak()] }));
+    });
+
+    const doc = new Document({ sections: [{ children }] });
+    const bytes = new Uint8Array(await (await Packer.toBlob(doc)).arrayBuffer());
+    return { bytes, mime: MIME.docx, filename: `${officeBase(file.name)}.docx`, message: `Converted ${pages.length} page${pages.length === 1 ? '' : 's'} to Word.` };
+  }
+
+  /** PDF → Excel: text is aligned into rows and columns by position, one sheet per page. */
+  async function pdfToXlsx(file) {
+    const pages = await extractPdfText(file);
+    await loadScript(OFFICE_LIBS.exceljs);
+    const wb = new window.ExcelJS.Workbook();
+
+    pages.forEach((items, pi) => {
+      const ws = wb.addWorksheet(`Page ${pi + 1}`);
+      if (!items.length) return;
+      // Column starts: cluster the left edges of all text runs on the page.
+      const xs = items.map(i => i.x).sort((a, b) => a - b);
+      const cols = [];
+      xs.forEach(x => { if (!cols.length || x - cols[cols.length - 1] > 12) cols.push(x); });
+      const colOf = (x) => { let c = 0; cols.forEach((cx, i) => { if (x >= cx - 2) c = i; }); return c; };
+
+      groupLines(items).forEach(line => {
+        const cells = [];
+        line.items.forEach(it => {
+          const c = colOf(it.x);
+          cells[c] = cells[c] ? `${cells[c]} ${it.str}` : it.str;
+        });
+        ws.addRow(Array.from({ length: cells.length }, (_, i) => {
+          const v = (cells[i] || '').trim();
+          const num = v.replace(/,/g, '');
+          return /^-?\d+(\.\d+)?$/.test(num) ? Number(num) : v;
+        }));
+      });
+      ws.columns.forEach(col => {
+        let max = 8;
+        col.eachCell({ includeEmpty: false }, cell => { max = Math.max(max, String(cell.value ?? '').length); });
+        col.width = Math.min(max + 2, 60);
+      });
+    });
+
+    const bytes = new Uint8Array(await wb.xlsx.writeBuffer());
+    return { bytes, mime: MIME.xlsx, filename: `${officeBase(file.name)}.xlsx`, message: `Converted ${pages.length} page${pages.length === 1 ? '' : 's'} to Excel.` };
+  }
+
+  /** PDF → PowerPoint: each page becomes a full-slide image, so the look is preserved exactly. */
+  async function pdfToPptx(file) {
+    const pdfjsLib = await loadPdfJs();
+    await loadScript(OFFICE_LIBS.pptxgenjs);
+    let pdf;
+    try {
+      pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+    } catch (err) {
+      if (err?.name === 'PasswordException') throw new Error('This PDF is password-protected. Remove the password with the Unlock tool first.');
+      throw new Error('Could not read this PDF.');
+    }
+    const pptx = new window.PptxGenJS();
+    const first = (await pdf.getPage(1)).getViewport({ scale: 1 });
+    const slideW = 10;
+    const slideH = +(slideW * first.height / first.width).toFixed(3);
+    pptx.defineLayout({ name: 'PDF', width: slideW, height: slideH });
+    pptx.layout = 'PDF';
+
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const page = await pdf.getPage(n);
+      const base = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale: 1600 / Math.max(base.width, base.height) });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      // Fit pages with a different shape inside the slide, centered.
+      const scale = Math.min(slideW / viewport.width, slideH / viewport.height);
+      const w = viewport.width * scale, h = viewport.height * scale;
+      pptx.addSlide().addImage({ data: canvas.toDataURL('image/jpeg', 0.88), x: (slideW - w) / 2, y: (slideH - h) / 2, w, h });
+    }
+    pdf.destroy();
+    const bytes = new Uint8Array(await pptx.write({ outputType: 'arraybuffer' }));
+    return { bytes, mime: MIME.pptx, filename: `${officeBase(file.name)}.pptx`, message: `Converted ${pdf.numPages} page${pdf.numPages === 1 ? '' : 's'} to PowerPoint slides.` };
+  }
+
+  const OFFICE_INPUTS = ['pdf', 'docx', 'xlsx', 'csv'];
+  const OFFICE_NOTES = {
+    docx: 'Word → PDF keeps text, headings, lists, tables, and images. Complex page layouts, headers/footers, and custom fonts are simplified.',
+    sheet: 'Excel → PDF turns each sheet into a table. Charts, colors, and merged cells are not kept.',
+    pdf: {
+      docx: 'Rebuilds the text as editable paragraphs. Images and exact layout are not kept.',
+      xlsx: 'Lines text up into rows and columns, one sheet per page. Works best on simple tables.',
+      pptx: 'Each page becomes a slide image — looks identical, but the text is not editable.',
+    },
+  };
+
+  async function convertOffice(file, opts) {
+    const ext = extOf(file.name);
+    if (ext === 'pdf') return ({ docx: pdfToDocx, xlsx: pdfToXlsx, pptx: pdfToPptx })[opts.target](file);
+    if (ext === 'docx') return docxToPdf(file);
+    if (ext === 'xlsx' || ext === 'csv') return sheetToPdf(file);
+    throw new Error('Unsupported file type.');
+  }
+
+  // ---------------------------------------------------------------------------
   // Shared single-file tool UI
   // ---------------------------------------------------------------------------
 
@@ -389,6 +747,43 @@
       options: '',
       readOptions: () => ({}),
     },
+    office: {
+      title: 'Office ↔ PDF',
+      blurb: 'Convert Word and Excel files to PDF, or turn a PDF into an editable Word, Excel, or PowerPoint file. Conversion happens in your browser, so complex layouts are simplified.',
+      action: 'Convert',
+      dropLabel: 'Drop a PDF, Word (.docx), Excel (.xlsx), or CSV file here',
+      accept: '.pdf,.docx,.xlsx,.csv,application/pdf',
+      isValid: (f) => OFFICE_INPUTS.includes(extOf(f.name)),
+      invalidMessage: 'Choose a PDF, .docx, .xlsx, or .csv file. Older .doc/.xls and PowerPoint files are not supported.',
+      run: convertOffice,
+      options: `
+        <fieldset data-role="pdfTarget" class="hidden space-y-2">
+          <legend class="text-xs font-semibold text-zinc-600 mb-1.5">Convert PDF to</legend>
+          <label class="${checkCls}"><input type="radio" name="officeTarget" value="docx" class="accent-accent" checked> <b class="text-zinc-800">Word</b> (.docx)</label>
+          <label class="${checkCls}"><input type="radio" name="officeTarget" value="xlsx" class="accent-accent"> <b class="text-zinc-800">Excel</b> (.xlsx)</label>
+          <label class="${checkCls}"><input type="radio" name="officeTarget" value="pptx" class="accent-accent"> <b class="text-zinc-800">PowerPoint</b> (.pptx)</label>
+        </fieldset>
+        <p data-role="officeNote" class="text-[11px] text-zinc-400 leading-snug">Supported: PDF → Word, Excel, PowerPoint · Word (.docx) → PDF · Excel (.xlsx, .csv) → PDF.</p>`,
+      readOptions: (root) => ({ target: root.querySelector('input[name=officeTarget]:checked').value }),
+      onFile: (f, root) => {
+        const ext = extOf(f.name);
+        const isPdfIn = ext === 'pdf';
+        const note = root.querySelector('[data-role=officeNote]');
+        const runBtn = root.querySelector('[data-role=run]');
+        const target = () => root.querySelector('input[name=officeTarget]:checked').value;
+        const update = () => {
+          note.textContent = isPdfIn ? OFFICE_NOTES.pdf[target()] : OFFICE_NOTES[ext === 'docx' ? 'docx' : 'sheet'];
+          runBtn.textContent = isPdfIn ? `Convert to ${({ docx: 'Word', xlsx: 'Excel', pptx: 'PowerPoint' })[target()]}` : 'Convert to PDF';
+        };
+        root.querySelector('[data-role=pdfTarget]').classList.toggle('hidden', !isPdfIn);
+        if (!root.dataset.officeWired) {
+          root.dataset.officeWired = '1';
+          root.querySelectorAll('input[name=officeTarget]').forEach(r => r.addEventListener('change', () => root._officeUpdate?.()));
+        }
+        root._officeUpdate = update;
+        update();
+      },
+    },
   };
 
   function renderSingleFileTool(key, container) {
@@ -402,9 +797,9 @@
 
         <label data-role="drop" class="group cursor-pointer flex flex-col items-center justify-center text-center gap-2 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/60 hover:border-accent/30 transition-all px-6 py-10">
           <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 12v9m0-9l-3 3m3-3l3 3"/></svg>
-          <p class="text-sm font-semibold text-zinc-700">Drop a PDF here, or <span class="text-accent underline decoration-volt decoration-2">browse</span></p>
+          <p class="text-sm font-semibold text-zinc-700">${tool.dropLabel || 'Drop a PDF here'}, or <span class="text-accent underline decoration-volt decoration-2">browse</span></p>
           <p data-role="fileInfo" class="text-xs text-zinc-400">Processed locally · never uploaded</p>
-          <input data-role="input" type="file" accept="application/pdf,.pdf" class="hidden">
+          <input data-role="input" type="file" accept="${tool.accept || 'application/pdf,.pdf'}" class="hidden">
         </label>
 
         ${tool.options ? `<div class="space-y-4">${tool.options}</div>` : ''}
@@ -422,11 +817,13 @@
 
     const setFile = (f) => {
       if (!f) return;
-      if (!isPdf(f)) { showToast('Please choose a PDF file', 'error'); return; }
+      const valid = tool.isValid ? tool.isValid(f) : isPdf(f);
+      if (!valid) { showToast(tool.invalidMessage || 'Please choose a PDF file', 'error'); return; }
       file = f;
       fileInfo.innerHTML = `<span class="font-semibold text-zinc-700">${escapeHtml(f.name)}</span> · ${formatSize(f.size)}`;
       runBtn.disabled = false;
       result.classList.add('hidden');
+      tool.onFile?.(f, container);
     };
     input.addEventListener('change', () => { setFile(input.files[0]); input.value = ''; });
     wireDropzone(drop, (files) => setFile(files[0]));
@@ -446,7 +843,7 @@
         if (out.noChange) {
           showResult(out.message, true);
         } else {
-          downloadBlob(new Blob([out.bytes], { type: 'application/pdf' }), out.filename);
+          downloadBlob(new Blob([out.bytes], { type: out.mime || 'application/pdf' }), out.filename);
           showResult(`Done — ${out.message} Your download has started.`, true);
           showToast(`${tool.title}: done`, 'success');
         }
