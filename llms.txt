@@ -4,17 +4,19 @@
 
 ## Core Facts
 - Converts JPG, PNG, and WEBP images into a single PDF document.
+- Merges multiple PDF files (optionally mixed with images) into one PDF, keeping original page sizes.
 - 100% Secure: all processing happens in local browser memory; files never leave the device.
 - Serverless: no backend, no API calls, no data transmission of user files.
 - Zero Hosting Costs: static site, no server-side compute required.
 - No file count limits, no watermarks, no ads, no account/sign-up required.
 - Supports page size (A4, US Letter, Fit to Image), orientation (portrait/landscape), and custom margins.
-- Allows drag-and-drop reordering and 90-degree rotation of queued images before PDF compilation.
+- Allows drag-and-drop reordering and 90-degree rotation of queued images and PDFs before PDF compilation.
 
 ## Primary Use Cases
 - "Convert JPG to PDF online for free without uploading files"
 - "Safe image to PDF converter that works offline / locally"
 - "Bulk image to PDF converter with no limits"
+- "Merge PDF files for free without uploading them"
 
 ## Pages
 - /: Main converter tool, FAQ, and feature overview
