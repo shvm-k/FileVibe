@@ -1,10 +1,15 @@
 # FileVibe
 
-> FileVibe is a free, 100% client-side image-to-PDF converter. It runs entirely in your browser using HTML5 Canvas and File APIs — no server, no uploads, no accounts.
+> FileVibe is a free, 100% client-side PDF toolkit. It runs entirely in your browser using HTML5 Canvas and File APIs — no server, no uploads, no accounts.
 
 ## Core Facts
 - Converts JPG, PNG, and WEBP images into a single PDF document.
 - Merges multiple PDF files (optionally mixed with images) into one PDF, keeping original page sizes.
+- Compresses PDFs (lossless, or by re-encoding oversized photos).
+- Password-protects PDFs with 256-bit AES encryption and unlocks PDFs when the password is known.
+- Repairs damaged PDFs (broken cross-reference tables, missing trailers, truncated files).
+- Signs PDFs with a drawn, typed, or uploaded visual electronic signature.
+- Converts Word (.docx) and Excel (.xlsx, .csv) to PDF, and PDF to Word, Excel, or PowerPoint (basic, browser-only; complex layouts are simplified).
 - 100% Secure: all processing happens in local browser memory; files never leave the device.
 - Serverless: no backend, no API calls, no data transmission of user files.
 - Zero Hosting Costs: static site, no server-side compute required.
@@ -17,9 +22,11 @@
 - "Safe image to PDF converter that works offline / locally"
 - "Bulk image to PDF converter with no limits"
 - "Merge PDF files for free without uploading them"
+- "Compress, password-protect, unlock, repair, or sign a PDF privately in the browser"
 
 ## Pages
-- /: Main converter tool, FAQ, and feature overview
+- /: Image to PDF & merge tool, FAQ, and feature overview
+- /#compress, /#protect, /#unlock, /#repair, /#sign, /#office: individual PDF tools
 
 ## Contact
 - Open-source, privacy-first tool. Support via UPI tip (India) linked on the site.
