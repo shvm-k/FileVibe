@@ -10,7 +10,8 @@
  * waitForPdfLib, downloadBlob, SPINNER_SVG.
  */
 (() => {
-  const PDFJS_VERSION = '3.11.174';
+  // 4.2.67+ is required: older releases can run script from a malicious PDF (CVE-2024-4367).
+  const PDFJS_VERSION = '4.10.38';
   const PDFJS_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}`;
 
   // ---------------------------------------------------------------------------
@@ -74,10 +75,19 @@
     return qpdf.FS.readFile('/out.pdf');
   }
 
-  async function loadPdfJs() {
-    await loadScript(`${PDFJS_BASE}/pdf.min.js`);
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.js`;
-    return window.pdfjsLib;
+  let pdfjsPromise = null;
+  function loadPdfJs() {
+    if (!pdfjsPromise) {
+      // PDF.js 4 ships as an ES module, so it is loaded with a dynamic import.
+      pdfjsPromise = import(`${PDFJS_BASE}/pdf.min.mjs`).then(lib => {
+        lib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.mjs`;
+        return lib;
+      }).catch(() => {
+        pdfjsPromise = null;
+        throw new Error('A PDF component failed to load. Please check your connection and try again.');
+      });
+    }
+    return pdfjsPromise;
   }
 
   /** Loads a PDF with pdf-lib, turning encryption errors into a friendly message. */
@@ -757,7 +767,7 @@
       const pdfjsLib = await loadPdfJs();
       const bytes = await state.doc.save();
       if (state.pdfjsDoc) state.pdfjsDoc.destroy();
-      state.pdfjsDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+      state.pdfjsDoc = await pdfjsLib.getDocument({ data: bytes, isEvalSupported: false }).promise;
     }
 
     async function renderPage() {
